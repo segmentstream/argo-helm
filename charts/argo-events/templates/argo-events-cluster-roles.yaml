@@ -8,12 +8,13 @@ roleRef:
   name: argo-events-role
 subjects:
   - kind: ServiceAccount
-    name: argo-events-sa
+    name: {{ .Values.serviceAccount }}
     namespace: {{ .Release.Namespace }}
   {{- if .Values.additionalSaNamespaces }}
+  {{ $sa := .Values.serviceAccount }}
   {{- range $namespace := .Values.additionalSaNamespaces }}
   - kind: ServiceAccount
-    name: argo-events-sa
+    name: {{ $sa }}
     namespace: {{ $namespace }}
   {{- end }}
   {{- end }}
@@ -51,6 +52,8 @@ rules:
     resources:
       - workflows
       - workflows/finalizers
+      - workflowtemplates
+      - workflowtemplates/finalizers
       - gateways
       - gateways/finalizers
       - sensors
