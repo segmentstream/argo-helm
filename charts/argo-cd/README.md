@@ -24,6 +24,11 @@ $ helm repo add argo https://argoproj.github.io/argo-helm
 $ helm install --name my-release argo/argo-cd
 ```
 
+### Helm v3 Compatability
+
+Requires chart version 1.5.1 or newer.
+
+Helm v3 has removed the `install-crds` hook so CRDs are now populated by files in the [crds](./crds) directory. Users of Helm v3 should set the `installCRDs` value to `false` to avoid warnings about nonexistant webhooks.
 
 ## Chart Values
 
@@ -31,14 +36,20 @@ $ helm install --name my-release argo/argo-cd
 |-----|------|---------|
 | global.image.imagePullPolicy | If defined, a imagePullPolicy applied to all ArgoCD deployments. | `"IfNotPresent"` |
 | global.image.repository | If defined, a repository applied to all ArgoCD deployments. | `"argoproj/argocd"` |
-| global.image.tag | If defined, a tag applied to all ArgoCD deployments. | `"v1.2.3"` |
+| global.image.tag | If defined, a tag applied to all ArgoCD deployments. | `"v1.4.2"` |
+| global.securityContext | Toggle and define securityContext | See [values.yaml](values.yaml) | 
+| global.imagePullSecrets | If defined, uses a Secret to pull an image from a private Docker registry or repository. | `[]` | 
 | nameOverride | Provide a name in place of `argocd` | `"argocd"` |
+| installCRDs | bool | `true` | Install CRDs if you are using Helm2. |
 | configs.knownHosts.data.ssh_known_hosts | Known Hosts | See [values.yaml](values.yaml) |
+| configs.secret.argocdServerAdminPassword | Admin password | `null` |
+| configs.secret.argocdServerAdminPasswordMtime | Admin password modification time | `date "2006-01-02T15:04:05Z" now` if configs.secret.argocdServerAdminPassword is set |
 | configs.secret.bitbucketSecret | BitBucket incoming webhook secret | `""` |
 | configs.secret.createSecret | Create the argocd-secret. | `true` |
 | configs.secret.githubSecret | GitHub incoming webhook secret | `""` |
 | configs.secret.gitlabSecret | GitLab incoming webhook secret | `""` |
 | configs.tlsCerts.data."argocd.example.com" | TLS certificate | See [values.yaml](values.yaml) |
+| configs.secret.extra | add additional secrets to be added to argocd-secret | `{}` |
 
 ## ArgoCD Controller
 
@@ -50,6 +61,7 @@ $ helm install --name my-release argo/argo-cd
 | controller.clusterAdminAccess.enabled | Enable RBAC for local cluster deployments. | `true` |
 | controller.containerPort | Controller listening port. | `8082` |
 | controller.extraArgs | Additional arguments for the controller. A list of key:value pairs | `[]` |
+| controller.env | Environment variables for the controller. | `[]` |
 | controller.image.repository | Repository to use for the controller | `global.image.repository` |
 | controller.image.imagePullPolicy | Image pull policy for the controller | `global.image.imagePullPolicy` |
 | controller.image.tag | Tag to use for the controller | `global.image.tag` |
@@ -90,8 +102,14 @@ $ helm install --name my-release argo/argo-cd
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | repoServer.affinity | Assign custom affinity rules to the deployment https://kubernetes.io/docs/concepts/configuration/assign-pod-node/ | `{}` |
+| repoServer.autoscaling.enabled | Enable Horizontal Pod Autoscaler (HPA) for the repo server | `false` |
+| repoServer.autoscaling.minReplicas | Minimum number of replicas for the repo server HPA | `1` |
+| repoServer.autoscaling.maxReplicas | Maximum number of replicas for the repo server HPA | `5` |
+| repoServer.autoscaling.targetCPUUtilizationPercentage | Average CPU utilization percentage for the repo server HPA | `50` |
+| repoServer.autoscaling.targetMemoryUtilizationPercentage | Average memory utilization percentage for the repo server HPA | `50` |
 | repoServer.containerPort | Repo server port | `8081` |
 | repoServer.extraArgs | Additional arguments for the repo server. A  list of key:value pairs. | `[]` |
+| repoServer.env | Environment variables for the repo server. | `[]` |
 | repoServer.image.repository | Repository to use for the repo server | `global.image.repository` |
 | repoServer.image.imagePullPolicy | Image pull policy for the repo server | `global.image.imagePullPolicy` |
 | repoServer.image.tag | Tag to use for the repo server | `global.image.tag` |
@@ -117,6 +135,7 @@ $ helm install --name my-release argo/argo-cd
 | repoServer.readinessProbe.periodSeconds | int | `10` |
 | repoServer.readinessProbe.successThreshold | int | `1` |
 | repoServer.readinessProbe.timeoutSeconds | int | `1` |
+| repoServer.replicas | The number of repo server pods to run | `1` |
 | repoServer.resources | Resource limits and requests for the repo server pods. | `{}` |
 | repoServer.service.annotations | Repo server service annotations. | `{}` |
 | repoServer.service.labels | Repo server service labels. | `{}` |
@@ -130,13 +149,20 @@ $ helm install --name my-release argo/argo-cd
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | server.affinity | Assign custom affinity rules to the deployment https://kubernetes.io/docs/concepts/configuration/assign-pod-node/ | `{}` |
+| server.autoscaling.enabled | Enable Horizontal Pod Autoscaler (HPA) for the server | `false` |
+| server.autoscaling.minReplicas | Minimum number of replicas for the server HPA | `1` |
+| server.autoscaling.maxReplicas | Maximum number of replicas for the server HPA | `5` |
+| server.autoscaling.targetCPUUtilizationPercentage | Average CPU utilization percentage for the server HPA | `50` |
+| server.autoscaling.targetMemoryUtilizationPercentage | Average memory utilization percentage for the server HPA | `50` |
 | server.certificate.additionalHosts | Certificate manager additional hosts | `[]` |
 | server.certificate.domain | Certificate manager domain | `"argocd.example.com"` |
 | server.certificate.enabled | Enables a certificate manager certificate. | `false` |
 | server.certificate.issuer | Certificate manager issuer | `{}` |
-| server.config | URL for Argo CD | `{}` |
+| server.clusterAdminAccess.enabled | Enable RBAC for local cluster deployments. | `true` |
+| server.config | [General Argo CD configuration](https://argoproj.github.io/argo-cd/operator-manual/declarative-setup/#repositories) | See [values.yaml](values.yaml) |
 | server.containerPort | Server container port. | `8080` |
 | server.extraArgs | Additional arguments for the server. A list of key:value pairs. | `[]` |
+| server.env | Environment variables for the server. | `[]` |
 | server.image.repository | Repository to use for the server | `global.image.repository` |
 | server.image.imagePullPolicy | Image pull policy for the server | `global.image.imagePullPolicy` |
 | server.image.tag | Tag to use for the repo server | `global.image.tag` |
@@ -164,12 +190,13 @@ $ helm install --name my-release argo/argo-cd
 | server.podAnnotations | Annotations for the repo server pods | `{}` |
 | server.podLabels | Labels for the repo server pods | `{}` |
 | server.priorityClassName | Priority class for the repo server | `""` |
-| server.rbacConfig | Argo CD RBAC policy https://argoproj.github.io/argo-cd/operator-manual/rbac/ | `See [values.yaml](values.yaml)` |
+| server.rbacConfig | [Argo CD RBAC policy](https://argoproj.github.io/argo-cd/operator-manual/rbac/) | `{}` |
 | server.readinessProbe.failureThreshold | int | `3` |
 | server.readinessProbe.initialDelaySeconds | int | `10` |
 | server.readinessProbe.periodSeconds | int | `10` |
 | server.readinessProbe.successThreshold | int | `1` |
 | server.readinessProbe.timeoutSeconds | int | `1` |
+| server.replicas | The number of server pods to run | `1` |
 | server.resources | Resource limits and requests for the server | `{}` |
 | server.service.annotations | Server service annotations | `{}` |
 | server.service.labels | Server service labels | `{}` |
@@ -197,6 +224,7 @@ $ helm install --name my-release argo/argo-cd
 | dex.initImage.imagePullPolicy | Argo CD init image imagePullPolicy | `global.image.imagePullPolicy` |
 | dex.initImage.tag | Argo CD init image tag | `global.image.tag` |
 | dex.name | Dex name | `"dex-server"` |
+| dex.env | Environment variables for the Dex server. | `[]` |
 | dex.nodeSelector | Dex node selector https://kubernetes.io/docs/user-guide/node-selection/ | `{}` |
 | dex.priorityClassName | Priority class for dex | `""` |
 | dex.resources | Resource limits and requests for dex | `{}` |
@@ -219,6 +247,7 @@ $ helm install --name my-release argo/argo-cd
 | redis.image.repository | Redis repository | `"redis"` |
 | redis.image.tag | Redis tag | `"5.0.3"` |
 | redis.name | Redis name | `"redis"` |
+| redis.env | Environment variables for the Redis server. | `[]` |
 | redis.nodeSelector | Redis node selector https://kubernetes.io/docs/user-guide/node-selection/ | `{}` |
 | redis.priorityClassName | Priority class for redis | `""` |
 | redis.resources | Resource limits and requests for redis | `{}` |

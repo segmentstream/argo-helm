@@ -10,8 +10,13 @@ installCRDs: true
 global:
   image:
     repository: argoproj/argocd
-    tag: v1.3.0
+    tag: v1.4.2
     imagePullPolicy: IfNotPresent
+  securityContext: {}
+  #  runAsUser: 999
+  #  runAsGroup: 999
+  #  fsGroup: 999
+  imagePullSecrets: []
 
 ## Controller
 controller:
@@ -19,7 +24,7 @@ controller:
 
   image:
     repository: # argoproj/argocd
-    tag: # v1.3.0
+    tag: # v1.4.2
     imagePullPolicy: # IfNotPresent
 
   ## Argo controller commandline flags
@@ -32,7 +37,11 @@ controller:
 
   ## Additional command line arguments to pass to argocd-controller
   ## key: value
-  extraArgs: []
+  extraArgs: {}
+
+  ## Environment variables to pass to argocd-controller
+  ##
+  env: []
 
   ## Annotations to be added to controller pods
   ##
@@ -41,6 +50,12 @@ controller:
   ## Labels to be added to controller pods
   ##
   podLabels: {}
+
+  ## Labels to set container specific security contexts
+  containerSecurityContext: {}
+    # capabilities:
+    #   drop:
+    #     - all
 
   ## Configures the controller port
   containerPort: 8082
@@ -72,6 +87,7 @@ controller:
     annotations: {}
     labels: {}
     port: 8082
+    portName: https-controller
 
   ## Node selectors and tolerations for server scheduling to nodes with taints
   ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
@@ -107,6 +123,37 @@ controller:
     #     prometheus: kube-prometheus
     #   namespace: monitoring
     #   additionalLabels: {}
+    rules:
+      enabled: false
+      spec: []
+      # - alert: ArgoAppMissing
+      #   expr: |
+      #     absent(argocd_app_info)
+      #   for: 15m
+      #   labels:
+      #     severity: critical
+      #   annotations:
+      #     summary: "[ArgoCD] No reported applications"
+      #     description: >
+      #       ArgoCD has not reported any applications data for the past 15 minutes which
+      #       means that it must be down or not functioning properly.  This needs to be
+      #       resolved for this cloud to continue to maintain state.
+      # - alert: ArgoAppNotSynced
+      #   expr: |
+      #     argocd_app_sync_status{sync_status!="Synced"} == 1
+      #   for: 12h
+      #   labels:
+      #     severity: warning
+      #   annotations:
+      #     summary: "[{{`{{$labels.name}}`}}] Application not synchronized"
+      #     description: >
+      #       The application [{{`{{$labels.name}}`}} has not been synchronized for over
+      #       12 hours which means that the state of this cloud has drifted away from the
+      #       state inside Git.
+    #   selector:
+    #     prometheus: kube-prometheus
+    #   namespace: monitoring
+    #   additionalLabels: {}
 
   ## Enable Admin ClusterRole resources.
   ## Enable if you would like to grant rights to ArgoCD to deploy to the local kuberentes cluster.
@@ -126,6 +173,10 @@ dex:
     repository:
     tag:
     imagePullPolicy:
+
+  ## Environment variables to pass to the Dex server
+  ##
+  env: []
 
   serviceAccount:
     create: true
@@ -156,6 +207,13 @@ dex:
 
   priorityClassName: ""
 
+  ## Labels to set container specific security contexts
+  containerSecurityContext: {}
+    # capabilities:
+    #   drop:
+    #     - all
+
+
   resources: {}
   #  limits:
   #    cpu: 50m
@@ -177,6 +235,10 @@ redis:
   containerPort: 6379
   servicePort: 6379
 
+  ## Environment variables to pass to the Redis server
+  ##
+  env: []
+
   ## Node selectors and tolerations for server scheduling to nodes with taints
   ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
   ##
@@ -185,6 +247,13 @@ redis:
   affinity: {}
 
   priorityClassName: ""
+
+  ## Labels to set container specific security contexts
+  containerSecurityContext: {}
+    # capabilities:
+    #   drop:
+    #     - all
+
 
   resources: {}
   #  limits:
@@ -201,16 +270,28 @@ redis:
 server:
   name: server
 
+  replicas: 1
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 50
+    targetMemoryUtilizationPercentage: 50
+
   image:
     repository: # argoproj/argocd
-    tag: # v1.3.0
+    tag: # v1.4.2
     imagePullPolicy: # IfNotPresent
 
   ## Additional command line arguments to pass to argocd-server
   ## key: value
-  # extraArgs: []
+  extraArgs: {}
   #   insecure: true
-  extraArgs: []
+
+  ## Environment variables to pass to argocd-server
+  ##
+  env: []
 
   ## Argo server log level
   logLevel: info
@@ -256,6 +337,12 @@ server:
   affinity: {}
 
   priorityClassName: ""
+
+  ## Labels to set container specific security contexts
+  containerSecurityContext: {}
+    # capabilities:
+    #   drop:
+    #     - all
 
   resources: {}
   #  limits:
@@ -398,9 +485,9 @@ server:
   #  destination:
   #     server: https://kubernetes.default.svc
   #     namespace: guestbook
-  #   syncPolicy:
-  #     automated:
-  #       prune: false
+  #  syncPolicy:
+  #    automated:
+  #      prune: false
   #      selfHeal: false
 
   ## Projects
@@ -429,18 +516,36 @@ server:
   #   orphanedResources: {}
   #   roles: []
 
+  ## Enable Admin ClusterRole resources.
+  ## Enable if you would like to grant rights to ArgoCD to deploy to the local kuberentes cluster.
+  clusterAdminAccess:
+    enabled: true
+
 ## Repo Server
 repoServer:
   name: repo-server
 
+  replicas: 1
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 50
+    targetMemoryUtilizationPercentage: 50
+
   image:
     repository: # argoproj/argocd
-    tag: # v1.3.0
+    tag: # v1.4.2
     imagePullPolicy: # IfNotPresent
 
   ## Additional command line arguments to pass to argocd-repo-server
   ## key: value
-  extraArgs: []
+  extraArgs: {}
+
+  ## Environment variables to pass to argocd-repo-server
+  ##
+  env: []
 
   ## Argo repoServer log level
   logLevel: info
@@ -487,6 +592,12 @@ repoServer:
 
   priorityClassName: ""
 
+  ## Labels to set container specific security contexts
+  containerSecurityContext: {}
+    # capabilities:
+    #   drop:
+    #     - all
+
   resources: {}
   #  limits:
   #    cpu: 50m
@@ -500,6 +611,7 @@ repoServer:
     annotations: {}
     labels: {}
     port: 8081
+    portName: https-repo-server
 
   ## Repo server metrics service configuration
   metrics:
@@ -519,20 +631,42 @@ repoServer:
   ## If create is set to true, make sure to uncomment the name and update the rbac section below
   serviceAccount:
     create: false
-  #  name: argocd-repo-server
+    #  name: argocd-repo-server
     ## Annotations applied to created service account
     annotations: {}
 
   ## Repo server rbac rules
- # rbac:
- #   - apiGroups:
- #     - argoproj.io
- #     resources:
- #     - applications
- #     verbs:
- #     - get
- #     - list
- #     - watch
+  # rbac:
+  #   - apiGroups:
+  #     - argoproj.io
+  #     resources:
+  #     - applications
+  #     verbs:
+  #     - get
+  #     - list
+  #     - watch
+
+  ## Use init containers to configure custom tooling
+  ## https://argoproj.github.io/argo-cd/operator-manual/custom_tools/
+  ## When using the volumes & volumeMounts section bellow, please comment out those above.
+ #  volumes:
+ #  - name: custom-tools
+ #    emptyDir: {}
+ #
+ #  initContainers:
+ #  - name: download-tools
+ #    image: alpine:3.8
+ #    command: [sh, -c]
+ #    args:
+ #      - wget -qO- https://get.helm.sh/helm-v2.16.1-linux-amd64.tar.gz | tar -xvzf - &&
+ #        mv linux-amd64/helm /custom-tools/
+ #    volumeMounts:
+ #      - mountPath: /custom-tools
+ #        name: custom-tools
+ #  volumeMounts:
+ #  - mountPath: /usr/local/bin/helm
+ #    name: custom-tools
+ #    subPath: helm
 
 ## Argo Configs
 configs:
@@ -605,6 +739,34 @@ configs:
     # -----END RSA PRIVATE KEY-----
   secret:
     createSecret: true
+
+    # Webhook Configs
     githubSecret: ""
     gitlabSecret: ""
-    bitbucketSecret: ""
+    bitbucketServerSecret: ""
+    bitbucketUUÌD: ""
+    gogsSecret: ""
+
+    # Custom secrets. Useful for injecting SSO secrets into environment variables.
+    # Ref: https://argoproj.github.io/argo-cd/operator-manual/sso/
+    # Note that all values must be non-empty.
+    extra: {}
+      # LDAP_PASSWORD: "mypassword"
+
+  # Argo TLS Data.
+    argocdServerTlsConfig:
+      {}
+      # key:
+      # crt: |
+      #   -----BEGIN CERTIFICATE-----
+      #   <cert data>
+      #   -----END CERTIFICATE-----
+      #   -----BEGIN CERTIFICATE-----
+      #   <ca cert data>
+      #   -----END CERTIFICATE-----
+
+    # Argo expects the password in the secret to be bcrypt hashed. You can create this hash with
+    # `htpasswd -nbBC 10 "" $ARGO_PWD | tr -d ':\n' | sed 's/$2y/$2a/'`
+    # argocdServerAdminPassword:
+    # Password modification time defaults to current time if not set
+    # argocdServerAdminPasswordMtime: "2006-01-02T15:04:05Z"
