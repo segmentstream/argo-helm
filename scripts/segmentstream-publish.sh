@@ -2,7 +2,7 @@
 set -eux
 
 SRCROOT="$(cd "$(dirname "$0")/.." && pwd)"
-GIT_PUSH=${GIT_PUSH:-false}
+GIT_PUSH=${GIT_PUSH:-true}
 GIT_URL=git@github.com:segmentstream/argo-helm.git
 
 rm -rf $SRCROOT/output && git clone -b gh-pages $GIT_URL $SRCROOT/output
@@ -19,5 +19,5 @@ cd $SRCROOT/output && git status
 
 if [ "$GIT_PUSH" == "true" ]
 then
-    cd $SRCROOT/output && git add . && git commit -m "Publish charts" && git push GIT_URL gh-pages
+    cd $SRCROOT/output && git add . && git commit -m "Publish charts" && git push origin gh-pages
 fi
