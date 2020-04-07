@@ -26,6 +26,8 @@ spec:
 {{ toYaml .Values.controller.podAnnotations | indent 8}}{{- end }}
     spec:
       serviceAccountName: {{ .Values.controller.serviceAccount | quote }}
+      imagePullSecrets:
+        - name: {{ .Values.images.pullSecret }}
       containers:
         - name: controller
           image: "{{ .Values.images.namespace }}/{{ .Values.images.controller }}:{{ default .Values.images.tag .Values.controller.image.tag }}"
