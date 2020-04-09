@@ -1,11 +1,10 @@
 images:
-  namespace: eu.gcr.io/segmentstream
+  namespace: argoproj
   controller: workflow-controller
   server: argocli
   executor: argoexec
   pullPolicy: Always
-  tag: v2.6.3
-  pullSecret: gcr-json-key
+  tag: v2.7.1.
 
 crdVersion: v1alpha1
 installCRD: true
